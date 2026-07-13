@@ -1,0 +1,25 @@
+{
+    "name": "axiom-liquidity-protocol",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Managed liquidity accounting protocol with simulated external pools.",
+    "license": "MIT",
+    "scripts": {
+        "test": "node --test --experimental-strip-types \"tests/node/*.test.ts\"",
+        "ci": "bash scripts/ci.sh",
+        "typecheck": "tsc --noEmit",
+        "fmt": "prettier --config .prettierrc --ignore-path .prettierignore --write .",
+        "fmt:check": "prettier --check .",
+        "loc": "node scripts/check-loc.mjs",
+        "demo": "node --experimental-strip-types src/cli.ts"
+    },
+    "engines": {
+        "node": ">=24"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.14",
+        "prettier": "^3.8.3",
+        "typescript": "^5.8.3"
+    }
+}
