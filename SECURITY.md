@@ -1,61 +1,121 @@
-# Seguridad
+# Política de seguridad
 
-Este documento describe el modelo de seguridad esperado de AxiomLiquidityProtocol.
+## Versiones mantenidas
 
-## Modelo de confianza
+| Versión   | Estado      |
+| --------- | ----------- |
+| `1.0.x`   | Mantenida   |
+| `< 1.0.0` | Sin soporte |
 
-- Los depositantes confian en que las shares representan una fraccion proporcional del NAV del
-  vault.
-- Los estrategas solo pueden operar estrategias registradas y dentro de los limites del
-  `RiskController`.
-- Los pools externos son adaptadores simulados, pero exponen estados economicamente relevantes:
-  fees, valor de salida, rango activo, perdidas y deslizamiento.
-- Las politicas de fee y riesgo se tratan como componentes internos del protocolo.
+## Comunicación responsable
 
-## Invariantes esperadas
+Los hallazgos deben enviarse mediante un
+[aviso privado de seguridad](https://github.com/SolguardLabs/AxiomLiquidityProtocol/security/advisories/new).
+No publiques detalles técnicos en issues, pull requests o discusiones abiertas antes de que exista
+una corrección coordinada.
 
-- `idleAssets + managedAssets` debe reconciliar con el NAV publicado.
-- Cada deposito debe emitir shares usando el precio por share vigente antes de recibir el nuevo
-  efectivo.
-- Cada retiro debe quemar shares antes de entregar efectivo al usuario.
-- Las asignaciones no deben superar los limites de estrategia, pool o liquidez idle.
-- Los reportes no deben aceptar estados que excedan tolerancias operativas de perdida.
-- Los eventos deben permitir reconstruir depositos, asignaciones, reportes y retiros.
+Incluye:
 
-## Validacion automatizada
+- versión o commit afectado;
+- precondiciones y estado inicial mínimo;
+- transición económica observada;
+- impacto cuantificado sobre NAV, shares o retiradas;
+- reproducción determinista;
+- propuesta de tests de regresión.
 
-Los tests publicos cubren:
+## Fronteras de confianza
 
-- depositos iniciales y posteriores;
-- creacion y asignacion de estrategias;
-- fees de rendimiento bajo reportes positivos;
-- reduccion de NAV ante perdidas;
-- retiros contra liquidez idle y liquidez recordada desde estrategias;
-- vistas agregadas y eventos de auditoria.
+- `AxiomControlPlane` autentica operaciones privilegiadas en la capa de aplicación.
+- Los gobernadores administran roles, límites y reanudaciones.
+- Los guardianes solo pueden pausar acciones controladas.
+- Los asignadores mueven capital dentro de políticas ya configuradas.
+- Los reporteros autorizados publican estados de estrategias registradas.
+- Los adaptadores de pools son fuentes de valoración externas y deben tratarse como datos no
+  confiables hasta superar validación.
+- Los depositantes dependen de la exactitud del NAV y del supply de shares.
 
-## Gestion de dependencias
+El motor de dominio es una biblioteca en memoria; una integración de red debe aportar persistencia,
+autenticación fuerte, exclusión mutua e idempotencia alrededor del control plane.
 
-El proyecto no usa dependencias de runtime. Las dependencias de desarrollo se limitan a
-TypeScript, tipos de Node y Prettier.
+## Invariantes económicas
 
-## Alcance de revision
+```text
+totalAssets = idleAssets + managedAssets
+managedAssets = Σ strategy.accountedValue
+totalShares = Σ account.shareBalance
+```
 
-La revision debe centrarse en:
+Además:
+
+- un depósito se cotiza contra el NAV anterior a su entrada;
+- una retirada quema shares antes de liberar activos;
+- un recall no puede reducir más managed NAV del contabilizado;
+- los límites de estrategia, pool y rango se aplican antes de asignar;
+- cada importe monetario usa `bigint` y escala fija;
+- cada porcentaje se valida dentro de `[0, 10_000]` bps;
+- los cambios de roles y pausas generan eventos reconstruibles;
+- un snapshot operativo debe exponer cualquier gap de accounting distinto de cero.
+
+## Capas de control
+
+```mermaid
+flowchart TB
+    I["Identidad del servicio"] --> RBAC["Roles y separación de funciones"]
+    RBAC --> PAUSE["Pausas por acción"]
+    PAUSE --> LIMITS["Límites económicos"]
+    LIMITS --> VAL["Valoración y reconciliación"]
+    VAL --> STRESS["Stress testing"]
+    STRESS --> EVENTS["Eventos y alertas"]
+```
+
+Los controles son acumulativos. Superar una capa no evita las validaciones posteriores.
+
+## Operación segura
+
+- Ejecuta mutaciones mediante una cola serializada por vault.
+- Usa identificadores idempotentes en la capa que reciba peticiones de red.
+- Rechaza timestamps fuera de la ventana operativa acordada.
+- Mantén cuentas distintas para gobierno, guardianía, asignación y reporting.
+- Verifica `ACCOUNTING_GAP == 0` antes y después de cada lote.
+- Pausa nuevas asignaciones si el idle buffer o el shortfall exceden la política.
+- Conserva eventos y snapshots en almacenamiento append-only.
+- Ancla releases operativos al mismo SHA en `main`, `production` y el tag estable.
+
+## Validación automatizada
+
+El gate ejecuta:
+
+```bash
+bun install --frozen-lockfile
+bun run ci
+```
+
+La suite cubre accounting de vault, asignaciones, reports, pérdidas, retiradas, roles, pausas,
+valoración, reconciliación y estrés económico. CI también verifica que el tag coincida con la
+versión declarada en `package.json`.
+
+## Dependencias y cadena de suministro
+
+- No existen dependencias de runtime.
+- Bun instala el lockfile exacto con `--frozen-lockfile`.
+- Dependabot revisa npm y GitHub Actions semanalmente.
+- Las Actions reciben únicamente permiso de lectura sobre contenidos.
+- Los binarios y artefactos generados no se versionan.
+
+## Alcance
+
+Dentro de alcance:
 
 - conversiones entre activos y shares;
-- orden de actualizacion entre pools, estrategias y vault;
-- limites del `RiskController`;
-- atribucion de fees;
-- reconciliacion de NAV despues de perdidas y retiros;
-- consistencia entre vistas de reporting y estado ejecutable.
+- valoración, NAV y high watermarks;
+- asignación, recall y retiradas;
+- roles, pausas y límites;
+- modelos de estrés y alertas;
+- integridad de eventos y snapshots.
 
-## Reportes internos
+Fuera de alcance:
 
-Un reporte de seguridad debe incluir:
-
-- descripcion del comportamiento observado;
-- impacto economico;
-- pasos de reproduccion;
-- estado inicial minimo;
-- recomendacion de mitigacion;
-- tests de regresion propuestos.
+- disponibilidad de proveedores externos;
+- seguridad del sistema operativo del integrador;
+- credenciales añadidas por una aplicación consumidora;
+- pérdidas producidas por parámetros de riesgo aprobados explícitamente por gobierno.

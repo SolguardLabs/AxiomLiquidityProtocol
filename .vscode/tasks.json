@@ -4,21 +4,21 @@
         {
             "label": "test",
             "type": "shell",
-            "command": "npm test",
+            "command": "bun run test",
             "group": "test",
             "problemMatcher": []
         },
         {
             "label": "ci",
             "type": "shell",
-            "command": "npm run ci",
+            "command": "bun run ci",
             "group": "build",
             "problemMatcher": []
         },
         {
             "label": "typecheck",
             "type": "shell",
-            "command": "npm run typecheck",
+            "command": "bun run typecheck",
             "group": "build",
             "problemMatcher": ["$tsc"]
         }

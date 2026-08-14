@@ -3,6 +3,7 @@ import { ensureAmount, ensureBps, fail } from "../domain/errors.ts";
 import type {
     AggregatePoolQuote,
     AllocationRequest,
+    BasisPoints,
     PoolConfig,
     RangeSpec,
     RiskLimits,
@@ -77,6 +78,7 @@ export class RiskController {
         strategy: StrategyState,
         vault: VaultSnapshot,
         pool: PoolConfig,
+        minimumIdleBps: BasisPoints,
     ): void {
         ensureAmount("amount", request.amount);
         if (strategy.status !== "active") {
@@ -95,6 +97,14 @@ export class RiskController {
             fail("INSUFFICIENT_IDLE", "allocation exceeds idle assets", {
                 requested: request.amount,
                 idleAssets: vault.idleAssets,
+            });
+        }
+        const requiredIdleAssets = this.requiredIdle(vault.totalAssets, minimumIdleBps);
+        if (vault.idleAssets - request.amount < requiredIdleAssets) {
+            fail("IDLE_BUFFER_BREACHED", "allocation would breach the minimum idle buffer", {
+                requested: request.amount,
+                idleAssets: vault.idleAssets,
+                requiredIdleAssets,
             });
         }
         if (request.amount < this.#limits.minRangeLiquidity) {
@@ -154,25 +164,29 @@ export class RiskController {
         }
     }
 
-    validateWithdrawal(request: WithdrawalRequest, vault: VaultSnapshot): void {
+    validateWithdrawal(
+        request: WithdrawalRequest,
+        vault: VaultSnapshot,
+        maximumWithdrawalBps: BasisPoints,
+    ): void {
         ensureAmount("shares", request.shares);
+        ensureBps("maximumWithdrawalBps", maximumWithdrawalBps);
         if (vault.totalShares === ZERO) {
             fail("EMPTY_SUPPLY", "cannot withdraw from empty vault");
         }
         const shareBps = ratioBps(request.shares, vault.totalShares);
-        if (
-            shareBps > this.#limits.maxStrategyAllocationBps &&
-            request.shares < vault.totalShares
-        ) {
+        if (shareBps > maximumWithdrawalBps && request.shares < vault.totalShares) {
             fail("WITHDRAWAL_TOO_LARGE", "withdrawal exceeds single-request policy", {
                 requestedShares: request.shares,
                 shareBps,
+                maximumWithdrawalBps,
             });
         }
     }
 
-    requiredIdle(totalAssets: bigint): bigint {
-        return percentOf(totalAssets, this.#limits.minRangeLiquidity > ZERO ? 0n : 0n);
+    requiredIdle(totalAssets: bigint, minimumIdleBps: BasisPoints): bigint {
+        ensureBps("minimumIdleBps", minimumIdleBps);
+        return percentOf(totalAssets, minimumIdleBps);
     }
 
     private validateLimits(): void {

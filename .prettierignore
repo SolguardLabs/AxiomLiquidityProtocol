@@ -3,4 +3,3 @@ dist/
 out/
 coverage/
 package-lock.json
-vulnerability.md

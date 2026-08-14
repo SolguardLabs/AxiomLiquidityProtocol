@@ -17,7 +17,10 @@ export type EventName =
     | "pool.fees-accrued"
     | "pool.loss-recorded"
     | "pool.market-updated"
-    | "risk.limit-updated";
+    | "risk.limit-updated"
+    | "control.role-granted"
+    | "control.role-revoked"
+    | "control.pause-changed";
 
 export interface EventRecord<TPayload extends Record<string, unknown> = Record<string, unknown>> {
     readonly id: number;

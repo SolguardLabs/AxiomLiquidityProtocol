@@ -4,29 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NODE_BIN="${NODE_BIN:-node}"
 
-if ! command -v "$NODE_BIN" >/dev/null 2>&1; then
-  if command -v node.exe >/dev/null 2>&1 && node.exe --version >/dev/null 2>&1; then
-    NODE_BIN="node.exe"
-  elif command -v powershell.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
-    POWERSHELL_BIN="$(command -v powershell.exe)"
-    if [[ -x /init ]]; then
-      exec /init "$POWERSHELL_BIN" -NoProfile -ExecutionPolicy Bypass \
-        -File "$(wslpath -w "$ROOT_DIR/scripts/ci.ps1")"
-    fi
-    exec "$POWERSHELL_BIN" -NoProfile -ExecutionPolicy Bypass \
-      -File "$(wslpath -w "$ROOT_DIR/scripts/ci.ps1")"
-  fi
+if command -v node.exe >/dev/null 2>&1 && node.exe --version >/dev/null 2>&1; then
+  NODE_BIN="node.exe"
+elif ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+  echo "Node.js 24 or newer is required." >&2
+  exit 1
 fi
 
 cd "$ROOT_DIR"
-
-if [ -f "./node_modules/typescript/bin/tsc" ]; then
-  "$NODE_BIN" "./node_modules/typescript/bin/tsc" --noEmit
-fi
-
-if [ -f "./node_modules/prettier/bin/prettier.cjs" ]; then
-  "$NODE_BIN" "./node_modules/prettier/bin/prettier.cjs" --check .
-fi
-
+"$NODE_BIN" "./node_modules/typescript/bin/tsc" --noEmit
+"$NODE_BIN" "./node_modules/prettier/bin/prettier.cjs" --check .
 "$NODE_BIN" scripts/check-loc.mjs
 "$NODE_BIN" --test --experimental-strip-types "tests/node/*.test.ts"

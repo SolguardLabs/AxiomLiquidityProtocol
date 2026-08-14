@@ -38,7 +38,11 @@ export class WithdrawalService {
                 balance: this.vault.balanceOf(request.account),
             });
         }
-        this.risk.validateWithdrawal(request, this.vault.snapshot());
+        this.risk.validateWithdrawal(
+            request,
+            this.vault.snapshot(),
+            this.vault.config.maxWithdrawalBps,
+        );
         const beforeIdle = this.vault.idleAssets();
         const initialPreview = this.vault.previewRedeem(request.shares);
         if (beforeIdle < initialPreview && this.vault.managedAssets() > ZERO) {

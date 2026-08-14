@@ -1,8 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { AxiomError } from "../../src/domain/errors.ts";
-import { asset } from "../../src/domain/amount.ts";
-import { allocatedProtocol, fundedProtocol } from "../../src/simulation/fixtures.ts";
+import { asset, bps } from "../../src/domain/amount.ts";
+import { AxiomProtocol } from "../../src/axiomProtocol.ts";
+import {
+    allocatedProtocol,
+    defaultPools,
+    defaultRiskLimits,
+    defaultVaultConfig,
+    ethStrategyDraft,
+    fundedProtocol,
+    stableStrategyDraft,
+} from "../../src/simulation/fixtures.ts";
 import { assertStrategyValue, assertVaultReconciles } from "../helpers/assertions.ts";
 
 test("strategists allocate idle deposits into configured external pools", () => {
@@ -31,5 +40,29 @@ test("allocation respects strategy pool allowlists", () => {
                 amount: asset(25_000),
             }),
         (error) => error instanceof AxiomError && error.code === "POOL_NOT_ALLOWED",
+    );
+});
+
+test("allocation preserves the vault minimum idle buffer", () => {
+    const protocol = new AxiomProtocol({
+        vault: { ...defaultVaultConfig, minIdleBps: bps(5_000) },
+        risk: defaultRiskLimits,
+    });
+    for (const pool of defaultPools) protocol.registerPool(pool);
+    protocol.createStrategy(stableStrategyDraft());
+    protocol.createStrategy(ethStrategyDraft());
+    protocol.seedAccount("treasury", asset(800_000));
+    protocol.deposit("treasury", asset(800_000), 1);
+
+    assert.throws(
+        () =>
+            protocol.allocate({
+                strategyId: "stable-range-alpha",
+                poolId: "curve-usdc-usdt",
+                rangeId: "stable-tight",
+                amount: asset(400_001),
+                timestamp: 2,
+            }),
+        (error) => error instanceof AxiomError && error.code === "IDLE_BUFFER_BREACHED",
     );
 });

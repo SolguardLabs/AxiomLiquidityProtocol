@@ -19,6 +19,7 @@ import type {
 import { AccountBook } from "./state/accountBook.ts";
 import { PoolRegistry } from "./adapters/poolRegistry.ts";
 import { PerformanceFeePolicy } from "./fees/performanceFees.ts";
+import { EconomicRiskLens } from "./monitoring/economicRiskLens.ts";
 import { ProtocolLens } from "./reporting/lens.ts";
 import { RiskController } from "./risk/riskController.ts";
 import { AxiomAllocator } from "./services/allocator.ts";
@@ -44,6 +45,7 @@ export class AxiomProtocol {
     readonly reporter: AxiomReporter;
     readonly withdrawals: WithdrawalService;
     readonly lens: ProtocolLens;
+    readonly economicRisk: EconomicRiskLens;
 
     constructor(config: AxiomProtocolConfig) {
         this.accounts = new AccountBook();
@@ -80,6 +82,7 @@ export class AxiomProtocol {
             pools: this.pools,
             events: this.events,
         });
+        this.economicRisk = new EconomicRiskLens(this.lens, this.vault, this.strategies, this.risk);
     }
 
     registerAccount(id: AccountId, label = id): void {

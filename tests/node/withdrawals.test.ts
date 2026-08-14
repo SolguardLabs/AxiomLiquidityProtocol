@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { asset, bps } from "../../src/domain/amount.ts";
-import { allocatedProtocol } from "../../src/simulation/fixtures.ts";
+import { AxiomProtocol } from "../../src/axiomProtocol.ts";
+import {
+    allocatedProtocol,
+    defaultRiskLimits,
+    defaultVaultConfig,
+} from "../../src/simulation/fixtures.ts";
 import { runWithdrawalScenario } from "../../src/simulation/scenarios.ts";
 import { assertVaultReconciles } from "../helpers/assertions.ts";
 
@@ -51,4 +56,17 @@ test("published withdrawal scenario emits a withdrawal result", () => {
     assert.equal(result.name, "withdrawals");
     assert.ok(withdrawal!.assetsOut > 0n);
     assert.ok(result.snapshot.vault.totalShares < asset(800_000));
+});
+
+test("partial withdrawals use the vault withdrawal policy", () => {
+    const protocol = new AxiomProtocol({
+        vault: { ...defaultVaultConfig, maxWithdrawalBps: bps(4_000) },
+        risk: defaultRiskLimits,
+    });
+    protocol.seedAccount("alice", asset(400_000));
+    protocol.seedAccount("bob", asset(400_000));
+    protocol.deposit("alice", asset(400_000), 1);
+    protocol.deposit("bob", asset(400_000), 2);
+
+    assert.throws(() => protocol.withdrawAll("alice", 3));
 });
