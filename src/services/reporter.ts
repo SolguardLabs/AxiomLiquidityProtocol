@@ -1,4 +1,4 @@
-import { ZERO, max, min, saturatingSub } from "../domain/amount.ts";
+import { ZERO, max, saturatingSub } from "../domain/amount.ts";
 import { EventLog } from "../domain/events.ts";
 import type {
     AggregatePoolQuote,
@@ -12,6 +12,7 @@ import { PerformanceFeePolicy } from "../fees/performanceFees.ts";
 import { RiskController } from "../risk/riskController.ts";
 import { StrategyBook } from "../strategies/strategyBook.ts";
 import { AxiomVault } from "../vault/vaultLedger.ts";
+import { ReportValuationEngine } from "../valuation/reportValuation.ts";
 
 export class AxiomReporter {
     readonly vault: AxiomVault;
@@ -20,6 +21,7 @@ export class AxiomReporter {
     readonly risk: RiskController;
     readonly fees: PerformanceFeePolicy;
     readonly events: EventLog;
+    readonly valuation: ReportValuationEngine;
 
     constructor(input: {
         vault: AxiomVault;
@@ -35,6 +37,7 @@ export class AxiomReporter {
         this.risk = input.risk;
         this.fees = input.fees;
         this.events = input.events;
+        this.valuation = new ReportValuationEngine();
     }
 
     report(request: PerformanceReportRequest): PerformanceReportResult {
@@ -44,10 +47,11 @@ export class AxiomReporter {
         this.risk.validateReport(strategy, quote);
 
         const previousValue = strategy.accounting.accountedValue;
-        const reportedValue = request.reportedValue ?? quote.optimisticValue;
+        const valuation = this.valuation.resolve(previousValue, request, quote);
+        const reportedValue = valuation.reportedValue;
         const fee = this.fees.crystallize(
             strategy,
-            reportedValue,
+            valuation.feeReferenceValue,
             this.vault,
             this.strategies,
             timestamp,
@@ -64,7 +68,7 @@ export class AxiomReporter {
             });
         }
 
-        const adjustedValue = this.adjustedValueAfterExposure(reportedValue, quote);
+        const adjustedValue = valuation.adjustedValue;
         if (adjustedValue !== reportedValue) {
             this.vault.revalueManaged(reportedValue, adjustedValue);
             this.strategies.setAccountedValue(strategy.id, adjustedValue, timestamp);
@@ -105,6 +109,9 @@ export class AxiomReporter {
             feeShares: result.feeShares,
             timestamp,
             note: request.note,
+            valuationQuality: valuation.quality,
+            valuationConfidenceBps: valuation.confidenceBps,
+            valuationGap: valuation.valuationGap,
         });
         return result;
     }
@@ -115,19 +122,5 @@ export class AxiomReporter {
 
     private aggregateQuote(strategy: StrategyState): AggregatePoolQuote {
         return this.pools.quoteStrategy(strategy.id, strategy.positions);
-    }
-
-    private adjustedValueAfterExposure(
-        reportedValue: AssetAmount,
-        quote: AggregatePoolQuote,
-    ): AssetAmount {
-        if (quote.quotes.length === 0) {
-            return ZERO;
-        }
-        const boundedExit = min(quote.exitValue, reportedValue);
-        if (quote.unrealizedLoss === ZERO && quote.exitPenalty === ZERO) {
-            return reportedValue;
-        }
-        return boundedExit;
     }
 }

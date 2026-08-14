@@ -8,7 +8,6 @@ export const defaultVaultConfig = {
     name: "Axiom Managed Liquidity Vault",
     shareSymbol: "axUSDC",
     performanceFeeBps: bps(1_500),
-    strategistReserveBps: bps(500),
     minInitialDeposit: asset(1_000),
     minIdleBps: bps(500),
     maxWithdrawalBps: bps(7_500),

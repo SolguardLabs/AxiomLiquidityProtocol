@@ -26,7 +26,6 @@ export interface VaultConfig {
     readonly name: string;
     readonly shareSymbol: string;
     readonly performanceFeeBps: BasisPoints;
-    readonly strategistReserveBps: BasisPoints;
     readonly minInitialDeposit: AssetAmount;
     readonly minIdleBps: BasisPoints;
     readonly maxWithdrawalBps: BasisPoints;

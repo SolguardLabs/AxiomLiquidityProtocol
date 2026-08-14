@@ -42,7 +42,13 @@ export class AxiomAllocator {
         const pool = this.pools.get(request.poolId);
         const range = this.strategies.selectRange(request.strategyId, request.rangeId);
         this.risk.validateRange(range);
-        this.risk.validateAllocation(request, strategy, this.vault.snapshot(), pool.config);
+        this.risk.validateAllocation(
+            request,
+            strategy,
+            this.vault.snapshot(),
+            pool.config,
+            this.vault.config.minIdleBps,
+        );
         this.vault.moveIdleToManaged(request.amount);
         const position = pool.openPosition({
             strategyId: request.strategyId,

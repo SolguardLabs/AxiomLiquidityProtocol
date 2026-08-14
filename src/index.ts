@@ -6,11 +6,28 @@ export { asset, bps, formatAsset, formatShares, shares } from "./domain/amount.t
 export { AxiomError } from "./domain/errors.ts";
 export { EventLog } from "./domain/events.ts";
 export { PerformanceFeePolicy } from "./fees/performanceFees.ts";
+export {
+    DEFAULT_STRESS_SCENARIO,
+    EconomicRiskLens,
+    type EconomicRiskFlag,
+    type EconomicRiskSnapshot,
+    type StressScenario,
+} from "./monitoring/economicRiskLens.ts";
 export { ProtocolLens } from "./reporting/lens.ts";
 export { RiskController } from "./risk/riskController.ts";
 export { AxiomAllocator } from "./services/allocator.ts";
 export { AxiomReporter } from "./services/reporter.ts";
+export {
+    AxiomControlPlane,
+    type ControlledAction,
+    type ControlRole,
+} from "./security/controlPlane.ts";
 export { WithdrawalService } from "./services/withdrawals.ts";
+export {
+    ReportValuationEngine,
+    type ReportValuation,
+    type ValuationQuality,
+} from "./valuation/reportValuation.ts";
 export { AccountBook } from "./state/accountBook.ts";
 export { StrategyBook } from "./strategies/strategyBook.ts";
 export { ShareLedger } from "./token/shareLedger.ts";
