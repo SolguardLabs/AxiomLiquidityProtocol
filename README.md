@@ -1,4 +1,4 @@
-# AxiomLiquidityProtocol
+<h1 align="center">AxiomLiquidityProtocol</h1>
 
 <p align="center">
   <a href="https://github.com/SolguardLabs/AxiomLiquidityProtocol/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/SolguardLabs/AxiomLiquidityProtocol/actions/workflows/ci.yml/badge.svg" /></a>
