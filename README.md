@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="./assets/banner.png" alt="AxiomLiquidityProtocol" width="100%" />
-</p>
+# AxiomLiquidityProtocol
 
 <p align="center">
   <a href="https://github.com/SolguardLabs/AxiomLiquidityProtocol/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/SolguardLabs/AxiomLiquidityProtocol/actions/workflows/ci.yml/badge.svg" /></a>
@@ -10,7 +8,9 @@
   <a href="./LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-f2eadf" /></a>
 </p>
 
-# AxiomLiquidityProtocol
+<p align="center">
+  <img src="./assets/banner.png" alt="AxiomLiquidityProtocol" width="100%" />
+</p>
 
 Axiom es un motor de liquidez gestionada para vaults de un único activo. Coordina depósitos,
 shares, estrategias multivenue, rangos de precio, reportes de NAV, comisiones de rendimiento,
